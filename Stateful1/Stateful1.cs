@@ -7,17 +7,28 @@ using System.Threading.Tasks;
 using Microsoft.ServiceFabric.Data.Collections;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
+using ClassLibrary1;
 
 namespace Stateful1
 {
 	/// <summary>
 	/// An instance of this class is created for each service replica by the Service Fabric runtime.
 	/// </summary>
-	internal sealed class Stateful1 : StatefulService
+	internal sealed class Stateful1 : StatefulService, ICounter
 	{
 		public Stateful1(StatefulServiceContext context)
 			: base(context)
 		{ }
+
+		public async Task<long> GetCount()
+		{
+			var serviceState = await StateManager.GetOrAddAsync<IReliableDictionary<string, long>>("myDictionary");
+			using (var transaction = StateManager.CreateTransaction())
+			{
+				var result = await serviceState.TryGetValueAsync(transaction, "Counter");
+				return result.HasValue ? result.Value : 0;
+			}
+		}
 
 		/// <summary>
 		/// Optional override to create listeners (e.g., HTTP, Service Remoting, WCF, etc.) for this service replica to handle client or user requests.
